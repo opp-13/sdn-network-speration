@@ -23,6 +23,14 @@ dps:
       1:  { description: "vm-biz01",    dot1x: true, native_vlan: inet }
       2:  { description: "vm-inet01",   dot1x: true, native_vlan: inet }
       3:  { description: "vm-unauth01", dot1x: true, native_vlan: inet }
+      # 예비 802.1X 포트 (local/endpoint.sh가 새 단말·컨테이너를 붙이는 자리).
+      # 영역(VLAN)은 포트가 아니라 단말 인증서 → RADIUS 응답으로 정해진다.
+      4:  { description: "spare-4", dot1x: true, native_vlan: inet }
+      5:  { description: "spare-5", dot1x: true, native_vlan: inet }
+      6:  { description: "spare-6", dot1x: true, native_vlan: inet }
+      7:  { description: "spare-7", dot1x: true, native_vlan: inet }
+      8:  { description: "spare-8", dot1x: true, native_vlan: inet }
+      9:  { description: "spare-9", dot1x: true, native_vlan: inet }
       10: { description: "호스트 B 방화벽 트렁크", tagged_vlans: [biz, inet] }
       # 계획서 원안은 native_vlan: inet 이었으나 Faucet은 NFV 포트에 output_only: true를 요구한다.
       20: { description: "Faucet 인증 프레임 수신", output_only: true }

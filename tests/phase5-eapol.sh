@@ -25,6 +25,7 @@ docker run -d --name $RCTR --network $NET --ip $RIP \
   -v "$R/eap:/etc/freeradius/mods-available/eap:ro" \
   -v "$R/clients.conf:/etc/freeradius/clients.conf:ro" \
   -v "$R/authorize:/etc/freeradius/mods-config/files/authorize:ro" \
+  -v "$R/endpoints:/etc/freeradius/mods-config/files/endpoints:ro" \
   -v "$R/certs:/etc/freeradius/certs/poc:ro" \
   "$RADIUS_IMAGE" -X >/dev/null
 for _ in $(seq 1 15); do docker logs $RCTR 2>&1 | grep -q 'Ready to process requests' && break; sleep 1; done

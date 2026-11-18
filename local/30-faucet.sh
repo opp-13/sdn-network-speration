@@ -8,6 +8,7 @@ source "$(dirname "$0")/lib.sh"
 need_root
 
 MODE=${1:-static}
+RECREATE=${2:-}   # --recreate: 같은 모드여도 컨테이너 재생성 (dot1x 포트 추가 시 권장)
 SRC="$POC_REPO/faucet/faucet.$MODE.yaml"
 [[ -f "$SRC" ]] || die "설정 파일 없음: $SRC"
 CFG_DIR="$POC_RUN/faucet"; LOG_DIR="$POC_RUN/faucet-log"
@@ -34,8 +35,8 @@ echo "$MODE" > "$CFG_DIR/MODE"
 
 running=$(docker inspect -f '{{.State.Running}}' poc-faucet 2>/dev/null || echo false)
 # 802.1X(chewie)는 Faucet 기동 시에만 시작되므로 모드가 바뀌면 컨테이너를 새로 띄운다.
-if [[ "$running" == true && "$PREV_MODE" != "$MODE" ]]; then
-  log "모드 변경 ($PREV_MODE → $MODE): Faucet 재생성"
+if [[ "$running" == true && ( "$PREV_MODE" != "$MODE" || "$RECREATE" == --recreate ) ]]; then
+  log "Faucet 재생성 ($PREV_MODE → $MODE ${RECREATE})"
   docker rm -f poc-faucet >/dev/null
   running=false
 fi

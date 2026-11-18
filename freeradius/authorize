@@ -17,6 +17,9 @@ vm-inet-big
 	Tunnel-Medium-Type = IEEE-802,
 	Tunnel-Private-Group-Id = "inet"
 
+# local/endpoint.sh 로 추가한 단말 (이름 → VLAN). 같은 디렉터리의 endpoints 파일.
+$INCLUDE endpoints
+
 # 목록에 없는 이름은 거부 (CA가 서명한 인증서라도 등록되지 않은 단말은 불허)
 DEFAULT	Auth-Type := Reject
 	Reply-Message = "unregistered endpoint"

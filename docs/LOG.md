@@ -77,3 +77,17 @@
 - nftables 수정 적용(`local/40-fw.sh`) 후 `tests/lite-run-all.sh` 재실행 → 전 항목 PASS.
 - 관찰: t07·t08에서 기존 인증 단말은 RADIUS/컨트롤러 장애 중에도 통신 유지, 컨트롤러 장애 중 EAPOL-Logoff 미반영. t11 재인증 78초.
 - 결과 정리: docs/RESULTS.md. 남은 일: Phase 8 재구축 확인(teardown → 스크립트만으로 재구성), 원격 2호스트 모드.
+
+## 2026-11-18 — 단말 추가 도구 `local/endpoint.sh`
+
+- 목적: 임의의 netns 또는 Docker 컨테이너를 업무망/인터넷망에 붙여 시험.
+- 원리: 영역은 포트가 아니라 인증서로 결정. 인증서(CN=ep-<이름>) 발급 → `freeradius/endpoints`(authorize에서 `$INCLUDE`)에 VLAN 등록 → RADIUS 재기동 → br-sdn 예비 포트 4~9에 연결 → 호스트 wpa_supplicant를 그 네임스페이스에서 실행해 802.1X → DHCP.
+- 컨테이너는 `--network none` + veth 1개만 붙이므로 단말 NIC 1개 원칙 유지. 이미지 수정 불필요(supplicant·DHCP는 호스트 바이너리가 컨테이너 netns에서 실행).
+- `faucet.dot1x.yaml`에 예비 포트 4~9 추가(check 통과), `30-faucet.sh dot1x --recreate` 옵션 추가. `$INCLUDE` 적용 후 Phase 5 회귀 시험 5/5 PASS.
+
+## 2026-11-18 — 발견: 미인증 포트가 인터넷망 브로드캐스트를 수신
+
+- GUIDE 4.2 태깅 구성도 작성 중 흐름 규칙 확인: `table=4, dl_vlan=200,dl_dst=ff:ff:ff:ff:ff:ff actions=output:10,pop_vlan,output:2,output:3` → 미인증 port 3에도 인터넷망 브로드캐스트·미지 유니캐스트 flood가 나감. dot1x 포트의 native_vlan이 inet이기 때문.
+- 영향: 미인증 단말은 송신은 불가하지만 인터넷망 브로드캐스트(ARP, DHCP 등)를 수동 관찰 가능. 업무망은 해당 없음.
+- 개선안(미적용): dot1x 포트 native_vlan을 트렁크에 없는 격리 VLAN(quarantine, VID 999)으로 변경. RESULTS 한계 4번(유효 인증서 + VLAN 속성 누락 → inet)도 함께 해결.
+- 그 외 확인: access 포트는 태그 없는 프레임만 매칭(`vlan_tci=0x0000/0x1fff`) → 단말 자체 태깅 drop, 트렁크는 VLAN 100·200 태그만 수용(native 없음).

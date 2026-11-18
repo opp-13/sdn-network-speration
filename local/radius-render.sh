@@ -18,7 +18,7 @@ OUT="$POC_RUN/radius"
 rm -rf "$OUT"; mkdir -p "$OUT/certs/trust"
 RADIUS_SECRET=$(tr -d '\n' < "$SECRET_FILE") envsubst '${RADIUS_SECRET}' \
   < "$POC_REPO/freeradius/clients.conf" > "$OUT/clients.conf"
-cp "$POC_REPO/freeradius/eap" "$POC_REPO/freeradius/authorize" "$OUT/"
+cp "$POC_REPO/freeradius/eap" "$POC_REPO/freeradius/authorize" "$POC_REPO/freeradius/endpoints" "$OUT/"
 cp "$PKI/certs/ca.pem" "$PKI/certs/radius.pem" "$PKI/private/radius.key" "$OUT/certs/"
 cp "$PKI/certs/ca.pem" "$OUT/certs/trust/$(openssl x509 -hash -noout -in "$PKI/certs/ca.pem").0"
 # 컨테이너 안의 freerad 사용자가 읽을 수 있게 (run/ 은 로컬 전용)

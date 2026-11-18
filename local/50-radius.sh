@@ -13,6 +13,7 @@ docker run -d --name poc-radius --network none \
   -v "$R/eap:/etc/freeradius/mods-available/eap:ro" \
   -v "$R/clients.conf:/etc/freeradius/clients.conf:ro" \
   -v "$R/authorize:/etc/freeradius/mods-config/files/authorize:ro" \
+  -v "$R/endpoints:/etc/freeradius/mods-config/files/endpoints:ro" \
   -v "$R/certs:/etc/freeradius/certs/poc:ro" \
   "$RADIUS_IMAGE" -X >/dev/null
 sleep 1

@@ -1,0 +1,2 @@
+# local/endpoint.sh 가 관리하는 단말 등록부 (손으로 고쳐도 됨)
+# 형식은 authorize 와 같다. Tunnel-Private-Group-Id = Faucet VLAN 이름 (biz | inet)
