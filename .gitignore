@@ -1,0 +1,17 @@
+# 비밀값·환경별 값 (커밋 금지)
+env.sh
+secrets/
+pki/private/
+faucet/*.rendered.yaml
+
+# 이미지·디스크
+vm/images/
+*.qcow2
+*.img
+*.iso
+
+# 점검 결과 원본
+tests/out/
+
+# 로컬 lite 실행 생성물
+run/

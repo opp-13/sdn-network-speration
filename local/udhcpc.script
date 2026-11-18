@@ -1,0 +1,22 @@
+#!/bin/sh
+# busybox udhcpc 이벤트 스크립트 (단말 netns 안에서 실행됨)
+# resolv.conf는 반드시 /etc/netns/$POC_NS/ 에만 쓴다 (호스트 파일 보호).
+RESOLV="/etc/netns/${POC_NS:?}/resolv.conf"
+
+case "$1" in
+  deconfig)
+    ip addr flush dev "$interface"
+    ip link set "$interface" up
+    ;;
+  bound|renew)
+    ip addr flush dev "$interface"
+    ip addr add "$ip/${mask:-24}" dev "$interface"
+    if [ -n "$router" ]; then
+      ip route replace default via "${router%% *}" dev "$interface"
+    fi
+    : > "$RESOLV"
+    for d in $dns; do echo "nameserver $d" >> "$RESOLV"; done
+    echo "lease: $ip/${mask:-24} gw=${router:-none} dns=${dns:-none}"
+    ;;
+esac
+exit 0

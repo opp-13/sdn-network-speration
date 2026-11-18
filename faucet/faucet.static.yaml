@@ -1,0 +1,15 @@
+# Phase 3: 802.1X 없이 정적 VLAN. VLAN·트렁크·방화벽 경로 확인용.
+# 설계 원칙 1: routers: 블록 금지 (VLAN 간 라우팅은 fw에서만)
+vlans:
+  biz:  { vid: 100, description: "업무망" }
+  inet: { vid: 200, description: "인터넷망" }
+
+dps:
+  host-a:
+    dp_id: 0x1
+    hardware: "Open vSwitch"
+    interfaces:
+      1:  { description: "vm-biz01",    native_vlan: biz }
+      2:  { description: "vm-inet01",   native_vlan: inet }
+      3:  { description: "vm-unauth01", native_vlan: inet }
+      10: { description: "호스트 B 방화벽 트렁크", tagged_vlans: [biz, inet] }
