@@ -29,9 +29,16 @@ docker run --rm --network none --entrypoint check_faucet_config \
   -v "$CFG_DIR:/etc/faucet" "$FAUCET_IMAGE" /etc/faucet/faucet.candidate.yaml >/dev/null \
   || die "설정 검증 실패"
 mv "$CFG_DIR/faucet.candidate.yaml" "$CFG_DIR/faucet.yaml"
+PREV_MODE=$(cat "$CFG_DIR/MODE" 2>/dev/null || echo none)
 echo "$MODE" > "$CFG_DIR/MODE"
 
 running=$(docker inspect -f '{{.State.Running}}' poc-faucet 2>/dev/null || echo false)
+# 802.1X(chewie)는 Faucet 기동 시에만 시작되므로 모드가 바뀌면 컨테이너를 새로 띄운다.
+if [[ "$running" == true && "$PREV_MODE" != "$MODE" ]]; then
+  log "모드 변경 ($PREV_MODE → $MODE): Faucet 재생성"
+  docker rm -f poc-faucet >/dev/null
+  running=false
+fi
 if [[ "$running" == true ]]; then
   log "실행 중인 Faucet에 설정 재적용 (HUP)"
   docker kill -s HUP poc-faucet >/dev/null
@@ -44,9 +51,7 @@ else
     -v "$CFG_DIR:/etc/faucet" -v "$LOG_DIR:/var/log/faucet" \
     "$FAUCET_IMAGE" >/dev/null
   sleep 1
-  register_container_ns poc-faucet poc-faucet
-  attach "$BR_MGMT" - poc-faucet v-fct0 eth0 "$FAUCET_MGMT_IP"
-  attach "$BR_SDN" 20 poc-faucet v-fct1 eth1
+  faucet_attach
 fi
 
 ovs-vsctl set-controller "$BR_SDN" "tcp:${FAUCET_MGMT_IP%/*}:6653"
@@ -56,9 +61,7 @@ docker exec poc-faucet sh -c 'pip show faucet 2>/dev/null | grep -i ^version || 
   | tee "$POC_RUN/faucet-version.txt"
 
 log "컨트롤러 연결 대기"
-for _ in $(seq 1 20); do
-  [[ "$(ovs-vsctl get controller "$BR_SDN" is_connected 2>/dev/null)" == true ]] && break
-  sleep 1
-done
+wait_controller 40 || true
 echo "is_connected: $(ovs-vsctl get controller "$BR_SDN" is_connected)"
 grep -E 'DPID 1|dp_id|Connected|connected' "$LOG_DIR/faucet.log" 2>/dev/null | tail -5 || true
+fix_owner

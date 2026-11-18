@@ -15,3 +15,5 @@ tests/out/
 
 # 로컬 lite 실행 생성물
 run/
+pki/certs/
+*.srl

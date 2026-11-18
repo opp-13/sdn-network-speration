@@ -1,0 +1,22 @@
+# FreeRADIUS mods-config/files/authorize
+# 단말 인증서 CN(= User-Name)별 VLAN 배정.
+# Tunnel-Private-Group-Id 는 Faucet VLAN "이름"과 일치해야 한다 (Faucet 1.10.12 valve.py add_dot1x_native_vlan).
+
+vm-biz01
+	Tunnel-Type = VLAN,
+	Tunnel-Medium-Type = IEEE-802,
+	Tunnel-Private-Group-Id = "biz"
+
+vm-inet01
+	Tunnel-Type = VLAN,
+	Tunnel-Medium-Type = IEEE-802,
+	Tunnel-Private-Group-Id = "inet"
+
+vm-inet-big
+	Tunnel-Type = VLAN,
+	Tunnel-Medium-Type = IEEE-802,
+	Tunnel-Private-Group-Id = "inet"
+
+# 목록에 없는 이름은 거부 (CA가 서명한 인증서라도 등록되지 않은 단말은 불허)
+DEFAULT	Auth-Type := Reject
+	Reply-Message = "unregistered endpoint"

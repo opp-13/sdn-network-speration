@@ -1,0 +1,28 @@
+# Phase 6: 802.1X + 동적 VLAN.
+# 템플릿: ${RADIUS_SECRET}는 local/30-faucet.sh가 secrets/radius_secret으로 렌더링한다.
+# 설계 원칙 1: routers: 블록 금지
+#
+# dot1x 포트의 native_vlan = inet:
+#   RADIUS 응답에 VLAN이 없거나 이름이 틀리면 Faucet은 인증만 하고 native_vlan에 둔다
+#   (Faucet 1.10.12 valve.py add_dot1x_native_vlan). 업무망(biz)으로는 절대 기본 배정되지 않게 inet으로 둔다.
+vlans:
+  biz:  { vid: 100, description: "업무망" }
+  inet: { vid: 200, description: "인터넷망" }
+
+dps:
+  host-a:
+    dp_id: 0x1
+    hardware: "Open vSwitch"
+    dot1x:
+      nfv_intf: eth1
+      nfv_sw_port: 20
+      radius_ip: 10.255.0.20
+      radius_port: 1812
+      radius_secret: "${RADIUS_SECRET}"
+    interfaces:
+      1:  { description: "vm-biz01",    dot1x: true, native_vlan: inet }
+      2:  { description: "vm-inet01",   dot1x: true, native_vlan: inet }
+      3:  { description: "vm-unauth01", dot1x: true, native_vlan: inet }
+      10: { description: "호스트 B 방화벽 트렁크", tagged_vlans: [biz, inet] }
+      # 계획서 원안은 native_vlan: inet 이었으나 Faucet은 NFV 포트에 output_only: true를 요구한다.
+      20: { description: "Faucet 인증 프레임 수신", output_only: true }

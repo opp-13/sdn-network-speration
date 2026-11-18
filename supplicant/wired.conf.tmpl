@@ -1,0 +1,14 @@
+# wpa_supplicant / eapol_test 공용 EAP-TLS 설정 템플릿
+# 변수: ${IDENTITY} ${PKI}(인증서 디렉터리 경로) ${CERT} ${KEY}
+# 렌더링: supplicant/render.sh <identity> <cert이름> <key이름> <PKI경로> > 출력파일
+network={
+	key_mgmt=IEEE8021X
+	eap=TLS
+	identity="${IDENTITY}"
+	ca_cert="${PKI}/certs/ca.pem"
+	client_cert="${PKI}/certs/${CERT}.pem"
+	private_key="${PKI}/private/${KEY}.key"
+	# 서버 인증서도 검증 (가짜 RADIUS 차단)
+	domain_match="radius.poc"
+	eapol_flags=0
+}

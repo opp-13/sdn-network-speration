@@ -55,6 +55,30 @@ attach() {
   nm_unmanage "$hif"
 }
 
+# 컨테이너(재)기동 후 관리망·br-sdn 연결
+faucet_attach() {
+  register_container_ns poc-faucet poc-faucet
+  attach "$BR_MGMT" - poc-faucet v-fct0 eth0 "$FAUCET_MGMT_IP"
+  attach "$BR_SDN" 20 poc-faucet v-fct1 eth1
+}
+radius_attach() {
+  register_container_ns poc-radius poc-radius
+  attach "$BR_MGMT" - poc-radius v-rad0 eth0 "$RADIUS_MGMT_IP"
+}
+wait_controller() {
+  for _ in $(seq 1 "${1:-20}"); do
+    [[ "$(ovs-vsctl get controller "$BR_SDN" is_connected 2>/dev/null)" == true ]] && return 0
+    sleep 1
+  done
+  return 1
+}
+
+# sudo로 만든 결과물을 원래 사용자 소유로 (Claude가 읽을 수 있게)
+fix_owner() {
+  [[ -n "${SUDO_USER:-}" ]] || return 0
+  chown -R "$SUDO_USER:" "$POC_REPO/tests/out" "$POC_RUN" 2>/dev/null || true
+}
+
 # 노트북 기본 경로 NIC (Wi-Fi 등)
 wan_if() { ip route get 1.1.1.1 | awk '{for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}'; }
 
