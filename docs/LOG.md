@@ -302,3 +302,10 @@
 - P0: Proxmox 9.2.4(커널 7.0.14), ifupdown2 3.3, systemd-networkd **inactive**(tap 자동 설정 위험 없음), vmbr0 192.168.50.238 / vmbr1 10.10.0.254 MTU 1550, SDN01까지 1550바이트 DF PASS, OVS 미설치(후보 3.5.0), **Proxmox 방화벽 enabled/running**, local 저장소 content=iso,vztmpl,backup(**snippets 없음**), interfaces.d/sdn(Proxmox SDN) 존재, VMID 100~130 사용, 16코어/58GB(여유 41GB).
 - 계획 수정(docs/PVE-PLAN.md P1): 브리지를 interfaces 파일이 아니라 ovs-vsctl 로만 생성(노드 네트워크 파일·ifreload 무관), 호스트 방화벽에 VXLAN(UDP 4789)·관리망 ICMP 허용 규칙 추가, snippets 용도 추가.
 - 작성: `pve/10-network.sh`(단계별 확인), `pve/11-check.sh`, `host-a/60-pve-uplink.sh`. `check-phase1.sh`·`50-port-guard.sh`(SKIP 10 11 20) 수정.
+
+## 2026-11-20 — 노드 OVS 설치(A안) 확정, 공식 문서·소스 대조
+
+- 사용자 결정: A안(노드에 openvswitch-switch 설치). Proxmox 노드에는 직접 접속하지 않음(명령만 제공, 사용자가 노드 셸에서 실행).
+- Proxmox wiki Open_vSwitch(2022-01-11 수정, oldid 11269): 설치 `apt install openvswitch-switch`, interfaces 파일 예시(OVSBridge/OVSIntPort/OVSBond), "OVS 와 Linux bonding/bridging/vlan 혼용 금지". 컨트롤러·fail-mode·VXLAN·방화벽 언급 없음.
+- pve-common PVE/Network.pm: OVS 판별 `ovs-vsctl br-exists`(interfaces 미참조), firewall=1 → fwbr Linux 브리지 삽입, firewall=0 → tap 직접 add-port, 기동마다 del-port/add-port(ofport_request 없음), tap MTU=브리지 MTU, tag/trunks 를 OVS 포트에 설정, 컨트롤러·fail_mode 코드 없음.
+- 반영: `pve/10-network.sh`에 vmbr10·vmbr11 mtu_request=1500, `pve/11-check.sh` MTU 검사, PVE-PLAN P3 hookscript 거부 조건에 tag/trunks 추가.

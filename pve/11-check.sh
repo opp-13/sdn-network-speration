@@ -12,6 +12,8 @@ res "$(ovs-vsctl get interface vx-trunk ofport 2>/dev/null)" 10 "vx-trunk = vmbr
 res "$(ovs-vsctl get-controller vmbr10)" "tcp:10.255.0.40:6653" "vmbr10 컨트롤러 = faucet-pve"
 res "$(ip -4 -o addr show vmbr11 | grep -c ' 10.255.0.13/24')" 1 "vmbr11 관리망 10.255.0.13"
 res "$(ip -4 -o addr show vmbr10 | wc -l)" 0 "vmbr10 내부 포트에 IP 없음"
+res "$(cat /sys/class/net/vmbr10/mtu 2>/dev/null)" 1500 "vmbr10 MTU 1500 (Proxmox 가 VM tap MTU 로 그대로 씀)"
+res "$(cat /sys/class/net/vmbr11/mtu 2>/dev/null)" 1500 "vmbr11 MTU 1500"
 res "$(try ping -c2 -W2 10.255.0.11)" ok "관리망: 노드 → SDN01 호스트(10.255.0.11)"
 res "$(try ping -c2 -W2 10.255.0.20)" ok "관리망: 노드 → radius(10.255.0.20)"
 res "$(try ping -c2 -W2 10.255.0.10)" ok "관리망: 노드 → faucet-ctl(10.255.0.10)"

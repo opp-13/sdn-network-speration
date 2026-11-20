@@ -40,6 +40,13 @@ Proxmox 노드
 - SDN01 쪽 `host-a/60-pve-uplink.sh`: br-mgmt `vx-pve`(key 300), br-sdn `vx-pve-trunk`(key 110, ofport 11). 단일 구성 삭제 로직은 vx-mgmt/vx-trunk 이름만 지우므로 영향 없음. `check-phase1.sh`는 vx-pve* 제외, SDN01 포트 가드 제외 목록에 11 추가.
 - 완료 조건(`pve/11-check.sh`): vmbr10 secure·dpid 2·port 10·컨트롤러, vmbr11 IP, 노드 → SDN01·radius·faucet-ctl 관리망 ping, VXLAN 위 1500바이트 DF, 방화벽 규칙, snippets.
 
+- **2026-11-20 문서·소스 대조**: Proxmox wiki `Open_vSwitch`(2022-01 수정)는 interfaces 파일 예시만 있고 컨트롤러·fail-mode·VXLAN은 다루지 않음. pve-common `PVE/Network.pm` 확인 결과:
+  - OVS 브리지 판별은 `ovs-vsctl br-exists` → ovs-vsctl로만 만든 브리지도 VM NIC 연결 가능.
+  - `firewall=1`이면 tap과 OVS 사이에 Linux 브리지 `fwbr<VMID>i<N>`를 끼운다 → EAPOL 미전달 → `firewall=0` 필수.
+  - VM 기동마다 `del-port` → `add-port`, `ofport_request`는 설정하지 않음 → hookscript post-start에서 포트 번호 고정 필요.
+  - tap MTU = 브리지 MTU → vmbr10·vmbr11에 `mtu_request=1500` 명시.
+  - `tag=`/`trunks=`가 NIC에 있으면 OVS 포트에 설정됨 → hookscript에서 거부.
+
 ### P2. faucet-pve VM (Proxmox VM, 1 vCPU / 1GB)
 - SDN01에서 이미 만든 **role-faucet.qcow2를 그대로 가져와** `qm importdisk`로 쓴다(인터넷 불필요, Faucet 1.10.12 검증 버전).
 - NIC: net0 = vmbr11 (10.255.0.40), net1 = vmbr10 (`firewall=0`), ofport 20 고정.
@@ -54,7 +61,7 @@ Proxmox 노드
 
 ### P3. Proxmox hookscript + 포트 가드 (노드)
 - `local:snippets/poc-sdn-hook.sh`를 대상 VM에 `qm set --hookscript`로 연결한다.
-  - **pre-start**: 태그 `poc-sdn`이 붙은 VM은 NIC가 정확히 1개이고, bridge=vmbr10, `firewall=0`이어야 한다. 아니면 기동을 거부한다(원칙 3 강제).
+  - **pre-start**: 태그 `poc-sdn`이 붙은 VM은 NIC가 정확히 1개이고, bridge=vmbr10, `firewall=0`, **`tag=`·`trunks=` 없음**이어야 한다. 아니면 기동을 거부한다(원칙 3 강제. VLAN은 Faucet만 결정).
     - `firewall=1`이면 Proxmox가 tap과 OVS 사이에 리눅스 브리지(fwbr)를 끼운다. 리눅스 브리지는 EAPOL을 전달하지 않아 802.1X가 깨진다.
   - **post-start**: `ovs-vsctl set interface tap<VMID>i0 ofport_request=1000+VMID`(포트 번호 고정).
 - 포트 가드: `hosts/port-guard.sh` 재사용. `PORT_GUARD_BR=vmbr10`, `PORT_GUARD_SKIP="10 20"`, systemd 서비스로 설치.

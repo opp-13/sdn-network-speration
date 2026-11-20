@@ -5,6 +5,12 @@
 #   vmbr10 : Faucet 제어 엑세스 스위치. fail-mode secure, OpenFlow13, dpid 0x2,
 #            컨트롤러 tcp:10.255.0.40:6653 (faucet-pve VM, P2), 트렁크 VXLAN key 110 → SDN01 br-sdn port 11 (ofport 10)
 #
+# 근거 (2026-11-20 확인):
+#   - Proxmox wiki Open_vSwitch(2022-01): 설치는 apt install openvswitch-switch. 브리지 정의는 interfaces 파일 예시뿐,
+#     OpenFlow 컨트롤러·fail-mode·VXLAN 설정은 다루지 않음. "OVS 와 Linux bridge/bond/vlan 을 섞지 말 것".
+#   - pve-common PVE/Network.pm: OVS 브리지 판별은 `ovs-vsctl br-exists` (interfaces 파일 미참조) → ovs-vsctl 로만
+#     만든 브리지도 VM NIC 연결 가능. firewall=1 이면 tap 과 OVS 사이에 Linux 브리지 fwbr 삽입(EAPOL 미전달),
+#     VM 기동마다 del-port → add-port(ofport_request 미설정), tap MTU = 브리지 MTU.
 # 기존 설정은 바꾸지 않는다:
 #   - /etc/network/interfaces, interfaces.d/(sdn 포함) 수정 없음, ifreload 하지 않음
 #   - 브리지는 ovs-vsctl 로만 생성(OVS DB 에 저장되어 재부팅 후에도 유지), IP 는 systemd 유닛
@@ -46,6 +52,7 @@ ovs-vsctl --may-exist add-port vmbr11 vx-mgmt -- set interface vx-mgmt type=vxla
 ovs-vsctl --may-exist add-br vmbr10 -- set bridge vmbr10 protocols=OpenFlow13 other-config:datapath-id=0000000000000002 other-config:disable-in-band=true -- set-fail-mode vmbr10 secure
 ovs-vsctl --may-exist add-port vmbr10 vx-trunk -- set interface vx-trunk type=vxlan options:local_ip=$NODE_TUN options:remote_ip=$SDN01_TUN options:key=110 ofport_request=10
 ovs-vsctl set-controller vmbr10 tcp:$FAUCET_PVE:6653
+ovs-vsctl set interface vmbr10 mtu_request=1500 -- set interface vmbr11 mtu_request=1500
 systemd 유닛 poc-pve-net: vmbr11 에 $NODE_MGMT, vmbr10 내부 포트는 IP 없이 down"
 
 ovs-vsctl --may-exist add-br vmbr11
@@ -58,6 +65,8 @@ ovs-vsctl --may-exist add-br vmbr10 \
 ovs-vsctl --may-exist add-port vmbr10 vx-trunk \
   -- set interface vx-trunk type=vxlan options:local_ip=$NODE_TUN options:remote_ip=$SDN01_TUN options:key=110 ofport_request=10
 ovs-vsctl set-controller vmbr10 "tcp:$FAUCET_PVE:6653"
+# Proxmox 는 VM tap 을 붙일 때 브리지 MTU(/sys/class/net/<브리지>/mtu)를 그대로 쓴다 (PVE/Network.pm read_bridge_mtu)
+ovs-vsctl set interface vmbr10 mtu_request=1500 -- set interface vmbr11 mtu_request=1500
 
 cat > /etc/systemd/system/poc-pve-net.service <<EOF
 [Unit]
