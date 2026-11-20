@@ -93,7 +93,7 @@ t04() { begin t04 "다른 CA 서명 위조 인증서 (CN=vm-biz01)"
   reset_term unauth01
   "$S" unauth01 start vm-biz01 rogue-vm-biz01 >/dev/null
   res "$(try "$S" unauth01 wait 20)" fail "인증 실패"
-  res "$(port_vid 3)" 200 "port 3 VLAN이 biz로 바뀌지 않음"
+  res "$(port_vid 3)" 999 "port 3 격리 VLAN 유지 (biz로 바뀌지 않음)"
   res "$(try "$T" unauth01 dhcp)" fail "DHCP 미수신"
   reset_term unauth01
   end; }
@@ -118,7 +118,7 @@ t07() { begin t07 "RADIUS 중지 후 새 단말 인증 시도 (정상 업무 인
   reset_term unauth01
   "$S" unauth01 start vm-biz01 >/dev/null
   res "$(try "$S" unauth01 wait 25)" fail "인증 실패"
-  res "$(port_vid 3)" 200 "port 3가 업무망(100)으로 열리지 않음"
+  res "$(port_vid 3)" 999 "port 3가 업무망(100)으로 열리지 않음 (격리 유지)"
   res "$(try "$T" unauth01 dhcp)" fail "DHCP 미수신"
   note "기존 인증 단말 biz01 → 10.100.0.1: $(try l2_reach biz01 10.100.0.1)"
   reset_term unauth01
@@ -171,7 +171,7 @@ t11() { begin t11 "인증된 단말 EAPOL-Logoff"
   "$S" biz01 logoff >/dev/null; sleep 2
   res "$(authed_flow 1)" 0 "port 1 인증 흐름 제거"
   res "$(try l2_reach biz01 10.100.0.1)" fail "로그오프 후 차단"
-  note "로그오프 후 port 1 VID=$(port_vid 1) (inet 복귀 예상 200)"
+  note "로그오프 후 port 1 VID=$(port_vid 1) (격리 VLAN 복귀 예상 999)"
   local t0=$SECONDS
   "$S" biz01 wait 75 >/dev/null
   note "같은 supplicant의 재인증까지 $((SECONDS-t0))초 (chewie 선제 Identity 요청 주기 60초)"

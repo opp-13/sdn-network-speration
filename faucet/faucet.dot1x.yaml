@@ -2,12 +2,15 @@
 # 템플릿: ${RADIUS_SECRET}는 local/30-faucet.sh가 secrets/radius_secret으로 렌더링한다.
 # 설계 원칙 1: routers: 블록 금지
 #
-# dot1x 포트의 native_vlan = inet:
-#   RADIUS 응답에 VLAN이 없거나 이름이 틀리면 Faucet은 인증만 하고 native_vlan에 둔다
-#   (Faucet 1.10.12 valve.py add_dot1x_native_vlan). 업무망(biz)으로는 절대 기본 배정되지 않게 inet으로 둔다.
+# dot1x 포트의 native_vlan = quarantine (격리 VLAN 999, 2026-11-19 개선):
+#   - 인증 전·로그오프 후·RADIUS 응답에 VLAN 이 없거나 이름이 틀린 경우 포트는 native_vlan 에 머문다
+#     (Faucet 1.10.12 valve.py add_dot1x_native_vlan / del_dot1x_native_vlan).
+#   - quarantine 은 트렁크(port 10)에 싣지 않는다 → 게이트웨이·DHCP·다른 망이 없는 고립된 방.
+#   - 이전에는 inet 이었는데, 그러면 미인증 포트가 인터넷망 브로드캐스트를 받을 수 있었다(GUIDE 4.2 발견).
 vlans:
-  biz:  { vid: 100, description: "업무망" }
-  inet: { vid: 200, description: "인터넷망" }
+  biz:        { vid: 100, description: "업무망" }
+  inet:       { vid: 200, description: "인터넷망" }
+  quarantine: { vid: 999, description: "격리 (미인증·VLAN 미지정, 트렁크 미포함)" }
 
 dps:
   host-a:
@@ -20,17 +23,17 @@ dps:
       radius_port: 1812
       radius_secret: "${RADIUS_SECRET}"
     interfaces:
-      1:  { description: "vm-biz01",    dot1x: true, native_vlan: inet }
-      2:  { description: "vm-inet01",   dot1x: true, native_vlan: inet }
-      3:  { description: "vm-unauth01", dot1x: true, native_vlan: inet }
+      1:  { description: "vm-biz01",    dot1x: true, native_vlan: quarantine }
+      2:  { description: "vm-inet01",   dot1x: true, native_vlan: quarantine }
+      3:  { description: "vm-unauth01", dot1x: true, native_vlan: quarantine }
       # 예비 802.1X 포트 (local/endpoint.sh가 새 단말·컨테이너를 붙이는 자리).
       # 영역(VLAN)은 포트가 아니라 단말 인증서 → RADIUS 응답으로 정해진다.
-      4:  { description: "spare-4", dot1x: true, native_vlan: inet }
-      5:  { description: "spare-5", dot1x: true, native_vlan: inet }
-      6:  { description: "spare-6", dot1x: true, native_vlan: inet }
-      7:  { description: "spare-7", dot1x: true, native_vlan: inet }
-      8:  { description: "spare-8", dot1x: true, native_vlan: inet }
-      9:  { description: "spare-9", dot1x: true, native_vlan: inet }
-      10: { description: "호스트 B 방화벽 트렁크", tagged_vlans: [biz, inet] }
+      4:  { description: "spare-4", dot1x: true, native_vlan: quarantine }
+      5:  { description: "spare-5", dot1x: true, native_vlan: quarantine }
+      6:  { description: "spare-6", dot1x: true, native_vlan: quarantine }
+      7:  { description: "spare-7", dot1x: true, native_vlan: quarantine }
+      8:  { description: "spare-8", dot1x: true, native_vlan: quarantine }
+      9:  { description: "spare-9", dot1x: true, native_vlan: quarantine }
+      10: { description: "방화벽 트렁크", tagged_vlans: [biz, inet] }   # quarantine 은 싣지 않음
       # 계획서 원안은 native_vlan: inet 이었으나 Faucet은 NFV 포트에 output_only: true를 요구한다.
       20: { description: "Faucet 인증 프레임 수신", output_only: true }

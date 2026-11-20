@@ -1,0 +1,14 @@
+[Unit]
+Description=PoC dnsmasq (%i) — firewall/dnsmasq-%i.conf
+After=network-online.target nftables.service
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/sbin/dnsmasq -k --conf-file=/etc/poc/dnsmasq-%i.conf --user=root \
+  --pid-file=/run/poc-dnsmasq-%i.pid --dhcp-leasefile=/var/lib/misc/poc-dnsmasq-%i.leases \
+  --log-facility=/var/log/poc-dnsmasq-%i.log
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

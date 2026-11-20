@@ -1,0 +1,18 @@
+# 터널 NIC(Proxmox vmbr1 쪽) 설정 예시. 관리 NIC 설정 파일(50-cloud-init.yaml 등)은 건드리지 않는다.
+# 사용 (각 호스트 VM에서):
+#   1) ip -br link 로 vmbr1 쪽 NIC 이름 확인 (Proxmox net1 → 보통 ens19)
+#      헷갈리면 Proxmox `qm config <vmid>` 의 net1 MAC 과 `ip -br link` 의 MAC 비교
+#   2) 아래를 /etc/netplan/60-poc-tun.yaml 로 저장 (이름·주소 수정)
+#      host-a: 10.10.0.1/24   host-b: 10.10.0.2/24   ← vmbr1 의 기존 IP 와 같은 대역의 빈 주소
+#   3) sudo chmod 600 /etc/netplan/60-poc-tun.yaml && sudo netplan try   (120초 안에 Enter, 문제 시 자동 원복)
+#   4) ip -br addr show ens19 ; cat /sys/class/net/ens19/mtu   → 주소와 1550 확인
+network:
+  version: 2
+  ethernets:
+    ens19:
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
+      link-local: []
+      addresses: [10.10.0.1/24]
+      mtu: 1550
